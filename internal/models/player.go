@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"regexp"
 
 	log "github.com/sirupsen/logrus"
@@ -16,13 +17,18 @@ type Player struct {
 
 func (player *Player) Validate() bool {
 	log.Infof("Validating player...")
+
+	safeEmail := true
+	if player.Email != "" {
+		safeEmail, _ = regexp.MatchString(
+			`^.*$`, player.Email) // TODO: make better
+	}
+
 	safeUser, _ := regexp.MatchString(
 		`^\w+$`, player.Username)
-	safeEmail, _ := regexp.MatchString(
-		`^.*@.*\.\w+$`, player.Email)
 	safePassword, _ := regexp.MatchString(
 		`^.{8,}$`, player.Password)
-	log.Infof("Validation results: %v %v", safeUser, safePassword)
+
 	return safeUser && safePassword && safeEmail
 }
 
@@ -35,6 +41,15 @@ func (player *Player) GetPasswordHash() string {
 }
 
 func (player *Player) CheckPasswordHash(hash string) bool {
+	log.Info("Checking password hashes...")
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(player.Password))
-	return err == nil
+	if err != nil {
+		log.Error(err)
+		return false
+	}
+	return true
+}
+
+func (player *Player) PrintStr() string {
+	return fmt.Sprintf("{\n\tusername: %s,\n\temail: %s,\n\tpassword: REDACTED,\n}", player.Username, player.Email)
 }
